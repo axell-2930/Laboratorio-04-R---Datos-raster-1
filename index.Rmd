@@ -1,0 +1,102 @@
+---
+title: "Laboratorio 04: R - Datos raster 1"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(sf)
+library(dplyr)
+library(leaflet)
+library(raster)
+library(rgdal)
+
+setwd("C:/Users/axell/Documents/datos rastes - lab")
+getwd()
+
+cr_ara_ambiguus <- st_read("https://raw.githubusercontent.com/geoprocesamiento-2020i/datos/master/biodiversidad/registros-presencia/cr/cr-ara-ambiguus.geojson")
+quetzal <- st_read("https://raw.githubusercontent.com/geoprocesamiento-2020i/datos/master/biodiversidad/registros-presencia/cr/cr_pharomachrus_mocinno.geojson")
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+### Capas Raster Altitud
+
+```{r}
+altitude <- getData("worldclim", var="alt", res=.5, lon=-84, lat=10)
+
+cr_altitude <- crop(altitude, extent(-86, -82.3, 8, 11.3)) 
+
+plot(cr_altitude)
+```
+
+### Capas Raster Promedio de Precipitación
+
+```{r}
+precipitation <- getData("worldclim", var="prec", res=.5, lon=-84, lat=10)
+
+cr_precipitation <- crop(precipitation, extent(-86, -82.3, 8, 11.3))
+
+plot(cr_precipitation)
+```
+
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Mapa  de aves  Pharomachrus Mocinno (quetzal)
+
+```{r}
+pal <- colorNumeric( c("green", "red", "blue"), values(cr_altitude), na.color = "transparent")
+
+mapa_quetzal <- leaflet() %>% 
+  addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes de ESRI") %>% 
+  addProviderTiles(providers$Stamen.TonerLite, group = "Stamen Toner Lite") %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik, group = "OpenStreetMap") %>%
+  addCircleMarkers(data = quetzal,
+                   stroke = F,
+                   radius = 4,
+                   fillColor = 'yellow',
+                   fillOpacity = 1,
+                   group = "Pharomachrus mocinno",
+                   popup = paste(quetzal$locality, 
+                                 quetzal$year, 
+                                 sep = '<br/>')) %>%
+  addRasterImage(cr_altitude,colors = pal, opacity = 0.8, group = "Altitud") %>%
+  addLayersControl(baseGroups = c("OpenStreetMap", "Stamen Toner Lite", "Imágenes de ESRI"),overlayGroups = c("Altitud", "Ara ambiguus"),options = layersControlOptions(collapsed = FALSE)) %>%
+  addLegend(pal = pal, values = values(cr_altitude), title = "Altitud") %>%
+  addMiniMap(toggleDisplay = TRUE,position = "bottomleft",tiles = providers$Stamen.TonerLite)
+
+mapa_quetzal
+
+```
+
+### Mapa de aves Ara ambiguus (lapa verde)
+
+```{r}
+pal <- colorNumeric( c("green", "red", "blue"), values(cr_altitude), na.color = "transparent")
+
+mapa_de_lapa_verde <- leaflet() %>% 
+addProviderTiles(providers$Esri.WorldImagery, group = "Imágenes de ESRI") %>% 
+addProviderTiles(providers$Stamen.TonerLite, group = "Stamen Toner Lite") %>%
+addProviderTiles(providers$OpenStreetMap.Mapnik, group = "OpenStreetMap") %>%
+addCircleMarkers(data = cr_ara_ambiguus,
+                   stroke = F,
+                   radius = 4,
+                   fillColor = 'yellow',
+                   fillOpacity = 1,
+                   group = "Ara ambiguus",
+                   popup = paste(cr_ara_ambiguus$locality, 
+                                 cr_ara_ambiguus$year, 
+                                 sep = '<br/>')) %>%
+addRasterImage(cr_altitude,colors = pal, opacity = 0.8, group = "Altitud") %>%
+addLayersControl(baseGroups = c("OpenStreetMap", "Stamen Toner Lite", "Imágenes de ESRI"),overlayGroups = c("Altitud", "Ara ambiguus"),options = layersControlOptions(collapsed = FALSE)) %>%
+addLegend(pal = pal, values = values(cr_altitude), title = "Altitud") %>%
+addMiniMap(toggleDisplay = TRUE,position = "bottomleft",tiles = providers$Stamen.TonerLite)
+
+mapa_de_lapa_verde
+```
